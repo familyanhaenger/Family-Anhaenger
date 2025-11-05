@@ -1,5 +1,5 @@
 :root{
-  --bg:#0b0c10; --card:#121318; --ink:#e8e8e8; --muted:#a8a8a8; --accent:#4da3ff; --danger:#ff5c7a;
+  --bg:#0b0c10; --card:#121318; --ink:#e8e8e8; --muted:#a8a8a8; --accent:#7d4dff; --danger:#ff5c7a;
   --grid:#1a1c24; --pill:#1f2230;
 }
 *{box-sizing:border-box}
@@ -25,38 +25,23 @@ button:hover{border-color:var(--accent)}
 .month-title{margin:0 0 6px}
 .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;color:var(--muted);font-size:12px}
 .grid-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:6px;position:relative}
-.day{border-radius:8px;padding:6px;min-height:78px;border:1px solid var(--grid);position:relative;background:#0f1117}
+.day{border-radius:8px;padding:6px;min-height:78px;border:1px solid var(--grid);position:relative;background:#0f1117; z-index:2;} /* on top */
 .day.is-out{opacity:.35}
 
-/* Datum immer sichtbar über den Balken */
+/* date number always on top */
 .day .dnum{
-  position:absolute;
-  top:6px;
-  right:8px;
-  font-size:12px;
-  color:var(--ink);
-  font-weight:600;
-  z-index:10;
-  pointer-events:none;
-  text-shadow:0 1px 2px #000;
+  position:absolute; top:6px; right:8px;
+  font-size:12px; color:var(--ink); font-weight:600;
+  z-index:10; pointer-events:none; text-shadow:0 1px 2px #000;
 }
 
-/* Balken-Stil (JETZT positioniert, damit z-index greift) */
+/* booking bars (under date numbers) */
 .bar{
-  position:relative;      /* <— wichtig */
-  height:24px;
-  border-radius:999px;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:2px 10px;
-  font-weight:600;
-  color:#000;
-  overflow:hidden;
-  white-space:nowrap;
-  text-overflow:ellipsis;
+  position:relative; z-index:1;
+  height:24px; border-radius:999px; display:flex; align-items:center; gap:8px;
+  padding:2px 10px; font-weight:600; color:#000;
+  overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
   margin-top:40px;
-  z-index:1;              /* unter der Datumszahl */
 }
 .bar .label{opacity:.95}
 

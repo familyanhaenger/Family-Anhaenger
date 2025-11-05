@@ -81,7 +81,7 @@ function renderBars(grid, year, month, startOffset, daysCount, entries){
         seg.className = 'bar';
         seg.style.background = color;
         const colStart = (segStart % 7) + 1;
-        const colEnd   = (segEnd % 7) + 2; // exclusive
+        const colEnd   = (segEnd % 7) + 2;
         seg.style.gridColumn = `${colStart} / ${colEnd}`;
         seg.style.gridRow = (w+1).toString();
         if(w === firstSegRow){
@@ -90,7 +90,6 @@ function renderBars(grid, year, month, startOffset, daysCount, entries){
           label.textContent = b.name + (b.note ? ' · ' + b.note : '');
           seg.appendChild(label);
 
-          // Delete Button nur wenn Start im aktuellen Monat liegt
           const startInThisMonth = b.s.getMonth() === month && b.s.getFullYear() === year;
           if(startInThisMonth){
             const del = document.createElement('button');
@@ -146,7 +145,7 @@ function showMsg(errOrText){
   const el = $('#msg');
   if(typeof errOrText === 'string'){ el.textContent = errOrText; return; }
   const e = errOrText||{}; const d = e.data||{};
-  const map = {401:'Falscher Code.', 400:'Bitte Name/Zeitraum prüfen.', 409:'Konflikt: Zeitraum überschneidet sich.'};
+  const map = {401:'Falsches Passwort.', 400:'Bitte Name/Zeitraum prüfen.', 409:'Konflikt: Zeitraum überschneidet sich.'};
   el.textContent = map[e.status] || 'Fehler. Bitte erneut versuchen.';
 }
 
