@@ -9,7 +9,9 @@ const API = {
     return r.json();
   },
   async add({name, start, end, note, code}){
-    const r = await fetch('/api/bookings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name,start,end,note,code})});
+    const body = {name,start,end,note};
+    if(code) body.code = code;
+    const r = await fetch('/api/bookings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     if(!r.ok){ throw {status:r.status, data: await r.json().catch(()=>({}))}; }
     return r.json();
   },
@@ -41,7 +43,7 @@ function hashColor(str){
   return `hsl(${hue} ${sat}% ${lig}%)`;
 }
 
-function clipToMonth(d, year, month){ // returns JS Date clipped to month range
+function clipToMonth(d, year, month){
   const start = new Date(year, month, 1);
   const end = new Date(year, month+1, 0);
   if(d < start) return start;
@@ -50,7 +52,6 @@ function clipToMonth(d, year, month){ // returns JS Date clipped to month range
 }
 
 function renderBars(grid, year, month, startOffset, daysCount, entries){
-  // Build booking bars as weekly segments to wrap lines
   const monthStart = new Date(year, month, 1);
   const monthEnd   = new Date(year, month+1, 0);
   const totalCells = startOffset + daysCount;
@@ -58,9 +59,9 @@ function renderBars(grid, year, month, startOffset, daysCount, entries){
 
   const bookings = entries
     .map(e => ({...e, s: new Date(e.start_date), e: new Date(e.end_date)}))
-    .filter(b => !(b.e < monthStart || b.s > monthEnd)); // overlaps this month
+    .filter(b => !(b.e < monthStart || b.s > monthEnd));
 
-  bookings.forEach((b, idx) => {
+  bookings.forEach((b) => {
     const s = clipToMonth(b.s, year, month);
     const e = clipToMonth(b.e, year, month);
     const sDay = s.getDate();
@@ -68,6 +69,7 @@ function renderBars(grid, year, month, startOffset, daysCount, entries){
     const startIndex = startOffset + (sDay - 1);
     const endIndex   = startOffset + (eDay - 1);
     const color = hashColor(b.name);
+    const firstSegRow = Math.floor(startIndex/7);
 
     for(let w=0; w<weeks; w++){
       const rowStart = w*7;
@@ -79,13 +81,16 @@ function renderBars(grid, year, month, startOffset, daysCount, entries){
         seg.className = 'bar';
         seg.style.background = color;
         const colStart = (segStart % 7) + 1;
-        const colEnd   = (segEnd % 7) + 2; // end is exclusive
+        const colEnd   = (segEnd % 7) + 2; // exclusive
         seg.style.gridColumn = `${colStart} / ${colEnd}`;
         seg.style.gridRow = (w+1).toString();
-        // Label nur im ersten Segment dieser Buchung in diesem Monat
-        if(w === Math.floor(startIndex/7)){
-          seg.innerHTML = `<span class="label">${b.name}${b.note ? ' · '+b.note : ''}</span>`;
-          // Delete Button am Monatssegment des Starttages, falls Start in diesem Monat liegt
+        if(w === firstSegRow){
+          const label = document.createElement('span');
+          label.className = 'label';
+          label.textContent = b.name + (b.note ? ' · ' + b.note : '');
+          seg.appendChild(label);
+
+          // Delete Button nur wenn Start im aktuellen Monat liegt
           const startInThisMonth = b.s.getMonth() === month && b.s.getFullYear() === year;
           if(startInThisMonth){
             const del = document.createElement('button');
@@ -93,7 +98,8 @@ function renderBars(grid, year, month, startOffset, daysCount, entries){
             del.className = 'del tag';
             del.style.marginLeft = 'auto';
             del.addEventListener('click', async ()=>{
-              const code = $('#code').value.trim();
+              const codeEl = document.getElementById('code');
+              const code = codeEl ? codeEl.value.trim() : '';
               try{ await API.del(b.id, code); renderCalendar(parseInt($('#months').value,10)); }
               catch(err){ showMsg(err); }
             });
@@ -121,7 +127,6 @@ function renderCalendar(monthsAhead){
       node.querySelector('.month-title').textContent = first.toLocaleString('de-DE', {month:'long', year:'numeric'});
       const grid = node.querySelector('.grid-days');
 
-      // render day cells
       days.forEach(d => {
         const cell = document.createElement('div');
         cell.className = 'day' + (d? '' : ' is-out');
@@ -131,9 +136,7 @@ function renderCalendar(monthsAhead){
         grid.appendChild(cell);
       });
 
-      // render booking bars for this month
       renderBars(grid, mdate.getFullYear(), mdate.getMonth(), startOffset, count, all);
-
       cal.appendChild(node);
     }
   });
@@ -150,7 +153,9 @@ function showMsg(errOrText){
 $('#btnAdd').addEventListener('click', async ()=>{
   const name = $('#name').value.trim();
   const start = $('#start').value; const end = $('#end').value;
-  const note = $('#note').value.trim(); const code = $('#code').value.trim();
+  const note = $('#note').value.trim();
+  const codeEl = document.getElementById('code');
+  const code = codeEl ? codeEl.value.trim() : '';
   if(!name || !start || !end) return showMsg('Bitte Name/Start/Ende ausfüllen.');
   try{ await API.add({name,start,end,note,code}); $('#msg').textContent='Gespeichert.'; renderCalendar(parseInt($('#months').value,10)); }
   catch(err){ showMsg(err); }

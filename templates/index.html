@@ -31,12 +31,12 @@
         <label>Notiz
           <input id="note" placeholder="optional" />
         </label>
-        <label>Änderungs‑Code
-          <input id="code" type="password" placeholder="ACCESS_CODE" />
+        <label id="codeWrap">Änderungs‑Code
+          <input id="code" type="password" placeholder="ACCESS_CODE (leer = nicht nötig)" />
         </label>
         <button id="btnAdd">Eintragen</button>
       </div>
-      <p class="hint">Lesen ohne Code. Eintragen/Löschen nur mit gemeinsamem Code.</p>
+      <p class="hint">Wenn kein ACCESS_CODE gesetzt ist, kann jeder eintragen/löschen.</p>
       <p id="msg" class="msg"></p>
     </section>
 

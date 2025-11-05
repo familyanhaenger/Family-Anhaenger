@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 from datetime import datetime, date
 from dateutil import parser as dateparser
 from flask import Flask, jsonify, request, render_template
@@ -13,10 +14,24 @@ ACCESS_CODE = os.environ.get("ACCESS_CODE", "")
 MONTHS_AHEAD = int(os.environ.get("MONTHS_AHEAD", "12"))
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-if not DATABASE_URL:
-    os.makedirs("data", exist_ok=True)
-    DATABASE_URL = "sqlite:///data/bookings.sqlite"
+def normalize_db_url(u: str|None) -> str:
+    if not u:
+        os.makedirs("data", exist_ok=True)
+        return "sqlite:///data/bookings.sqlite"
+    # Render/Heroku often give postgres:// — SQLAlchemy wants postgresql+psycopg2://
+    if u.startswith("postgres://"):
+        u = u.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif u.startswith("postgresql://"):
+        u = u.replace("postgresql://", "postgresql+psycopg2://", 1)
+    # add sslmode=require if missing (managed DBs expect TLS)
+    parsed = urlparse(u)
+    q = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    if "sslmode" not in q:
+        q["sslmode"] = "require"
+    u = urlunparse(parsed._replace(query=urlencode(q)))
+    return u
 
+DATABASE_URL = normalize_db_url(DATABASE_URL)
 engine = create_engine(DATABASE_URL, future=True)
 
 class Base(DeclarativeBase):
@@ -72,9 +87,11 @@ def list_bookings():
 def create_booking():
     payload = request.get_json(force=True) or {}
     name = (payload.get("name") or "").strip()
-    code = (payload.get("code") or "").strip()
-    if ACCESS_CODE and code != ACCESS_CODE:
-        return jsonify({"error":"invalid_code"}), 401
+    # If ACCESS_CODE is empty, no protection; otherwise require correct code
+    if ACCESS_CODE:
+        code = (payload.get("code") or "").strip()
+        if code != ACCESS_CODE:
+            return jsonify({"error":"invalid_code"}), 401
     if not name or not payload.get("start") or not payload.get("end"):
         return jsonify({"error":"missing_fields"}), 400
 
@@ -111,9 +128,10 @@ def create_booking():
 
 @app.delete("/api/bookings/<int:booking_id>")
 def delete_booking(booking_id: int):
-    code = (request.args.get("code") or "").strip()
-    if ACCESS_CODE and code != ACCESS_CODE:
-        return jsonify({"error":"invalid_code"}), 401
+    if ACCESS_CODE:
+        code = (request.args.get("code") or "").strip()
+        if code != ACCESS_CODE:
+            return jsonify({"error":"invalid_code"}), 401
     with Session(engine) as s:
         b = s.get(Booking, booking_id)
         if b:
