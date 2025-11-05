@@ -64,70 +64,23 @@ function clipToMonth(d, year, month){
   return d;
 }
 
-function renderBars(container, year, month, startOffset, daysCount, entries){
-  const monthStart = new Date(year, month, 1);
-  const monthEnd   = new Date(year, month+1, 0);
-  const totalCells = startOffset + daysCount;
-  const weeks = Math.ceil(totalCells / 7);
+function daysBetweenInclusive(a, b){
+  const aa = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  const bb = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+  const out = [];
+  for(let d = aa; d <= bb; d = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1)){
+    out.push(new Date(d));
+  }
+  return out;
+}
 
-  const bookings = entries
-    .map(e => ({...e, s: new Date(e.start_date), e: new Date(e.end_date)}))
-    .filter(b => !(b.e < monthStart || b.s > monthEnd));
+function renderMarks(grid, year, month, startOffset, daysCount, entries){
+  // Build cell refs array for current month grid
+  const cells = [...grid.children]; // we'll append days after marks; but here we need only placeholders
+  // Instead we will generate days first to get refs, then marks - but we want days above marks.
+  // So we'll instead build day refs while creating day cells, and attach marks later via data-index.
 
-  bookings.forEach((b) => {
-    const s = clipToMonth(b.s, year, month);
-    const e = clipToMonth(b.e, year, month);
-    const sDay = s.getDate();
-    const eDay = e.getDate();
-    const startIndex = startOffset + (sDay - 1);
-    const endIndex   = startOffset + (eDay - 1);
-    const color = colorFor(b.name);
-
-    const firstSegRow = Math.floor(startIndex/7);
-    const startWeekday = (startIndex % 7);
-    let labelRow = firstSegRow;
-    if(startWeekday === 6 && endIndex > startIndex){ labelRow = firstSegRow + 1; }
-
-    for(let w=0; w<weeks; w++){
-      const rowStart = w*7;
-      const rowEnd = w*7 + 6;
-      const segStart = Math.max(startIndex, rowStart);
-      const segEnd   = Math.min(endIndex, rowEnd);
-      if(segStart <= segEnd){
-        const seg = document.createElement('div');
-        seg.className = 'bar';
-        seg.style.background = color;
-        const colStart = (segStart % 7) + 1;
-        const colEnd   = (segEnd % 7) + 2;
-        seg.style.gridColumn = `${colStart} / ${colEnd}`;
-        seg.style.gridRow = (w+1).toString();
-
-        const isSingleDay = segStart === segEnd;
-        const narrowCols = (segEnd - segStart + 1) <= 2;
-        if(isSingleDay || narrowCols){ seg.classList.add('compact'); }
-
-        if(w === labelRow){
-          const label = document.createElement('span');
-          label.className = 'label';
-          label.textContent = b.name;
-          seg.appendChild(label);
-
-          const del = document.createElement('button');
-          del.textContent = isSingleDay ? '✕' : 'Löschen';
-          del.title = 'Löschen';
-          del.className = 'del';
-          del.addEventListener('click', async (ev)=>{
-            ev.stopPropagation();
-            const code = $('#code')? $('#code').value.trim() : '';
-            try{ await API.del(b.id, code); renderAll(); }
-            catch(err){ showMsg(err); }
-          });
-          seg.appendChild(del);
-        }
-        container.appendChild(seg);
-      }
-    }
-  });
+  // This function will be called AFTER day cells exist (we'll structure calls accordingly).
 }
 
 function renderCalendar(monthsAhead, cache){
@@ -145,10 +98,8 @@ function renderCalendar(monthsAhead, cache){
       frag.querySelector('.month-title').textContent = first.toLocaleString('de-DE', {month:'long', year:'numeric'});
       const grid = frag.querySelector('.grid-days');
 
-      // 1) Bars zuerst einfügen
-      renderBars(grid, mdate.getFullYear(), mdate.getMonth(), startOffset, count, all);
-
-      // 2) Danach die Day-Zellen, damit diese oben liegen
+      // 1) create day cells first
+      const cellRefs = [];
       days.forEach(d => {
         const cell = document.createElement('div');
         cell.className = 'day' + (d? '' : ' is-out');
@@ -158,8 +109,38 @@ function renderCalendar(monthsAhead, cache){
           dnum.textContent=d.getDate();
           if(d.toDateString() === new Date().toDateString()) cell.classList.add('today');
           cell.appendChild(dnum);
+          const marks = document.createElement('div');
+          marks.className = 'marks';
+          cell.appendChild(marks);
         }
+        cellRefs.push(cell);
         grid.appendChild(cell);
+      });
+
+      // 2) add marks for each booking day
+      const monthStart = new Date(mdate.getFullYear(), mdate.getMonth(), 1);
+      const monthEnd   = new Date(mdate.getFullYear(), mdate.getMonth()+1, 0);
+      const bookings = all
+        .map(e => ({...e, s: new Date(e.start_date), e: new Date(e.end_date)}))
+        .filter(b => !(b.e < monthStart || b.s > monthEnd));
+
+      bookings.forEach(b => {
+        const s = new Date(Math.max(b.s, monthStart));
+        const e = new Date(Math.min(b.e, monthEnd));
+        const color = colorFor(b.name);
+        const letter = b.name.slice(0,1).toUpperCase();
+        daysBetweenInclusive(s,e).forEach(d => {
+          const idx = startOffset + (d.getDate()-1);
+          const cell = cellRefs[idx];
+          if(!cell) return;
+          const marks = cell.querySelector('.marks');
+          if(!marks) return;
+          const m = document.createElement('div');
+          m.className = 'mark';
+          m.textContent = letter;
+          m.style.background = color;
+          marks.appendChild(m);
+        });
       });
 
       cal.appendChild(frag);
@@ -245,7 +226,6 @@ function showMsg(errOrText){
 }
 
 async function renderAll(){
-  // DEFAULT 6 Monate ist Server-Default; falls User hochdreht, nehmen wir den Wert
   const monthsAhead = parseInt($('#months').value,10);
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
