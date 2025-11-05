@@ -47,7 +47,7 @@ function monthMatrix(year, month){
   const first = new Date(year, month, 1);
   const last  = new Date(year, month+1, 0);
   const days = [];
-  const startOffset = (first.getDay()+6)%7;
+  const startOffset = (first.getDay()+6)%7; // Mon=0
   for(let i=0;i<startOffset;i++) days.push(null);
   for(let d=1; d<=last.getDate(); d++) days.push(new Date(year, month, d));
   while(days.length%7) days.push(null);
@@ -64,7 +64,7 @@ function clipToMonth(d, year, month){
   return d;
 }
 
-function renderBars(barsLayer, year, month, startOffset, daysCount, entries){
+function renderBars(container, year, month, startOffset, daysCount, entries){
   const monthStart = new Date(year, month, 1);
   const monthEnd   = new Date(year, month+1, 0);
   const totalCells = startOffset + daysCount;
@@ -124,7 +124,7 @@ function renderBars(barsLayer, year, month, startOffset, daysCount, entries){
           });
           seg.appendChild(del);
         }
-        barsLayer.appendChild(seg);
+        container.appendChild(seg);
       }
     }
   });
@@ -132,8 +132,8 @@ function renderBars(barsLayer, year, month, startOffset, daysCount, entries){
 
 function renderCalendar(monthsAhead, cache){
   const cal = $('#calendar'); cal.innerHTML='';
-  const today = new Date();
-  const start = new Date(today.getFullYear(), today.getMonth(), 1);
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
   const end   = addMonths(start, monthsAhead);
   const from = fmt(start), to = fmt(new Date(end.getFullYear(), end.getMonth(), 0));
   const dataPromise = cache ? Promise.resolve(cache) : API.list(from, to);
@@ -143,9 +143,12 @@ function renderCalendar(monthsAhead, cache){
       const {first,last,days,startOffset,count} = monthMatrix(mdate.getFullYear(), mdate.getMonth());
       const frag = document.importNode($('#tpl-month').content, true);
       frag.querySelector('.month-title').textContent = first.toLocaleString('de-DE', {month:'long', year:'numeric'});
-      const gridDays = frag.querySelector('.grid-days');
-      const barsLayer = frag.querySelector('.bars-layer');
+      const grid = frag.querySelector('.grid-days');
 
+      // 1) Bars zuerst einfügen
+      renderBars(grid, mdate.getFullYear(), mdate.getMonth(), startOffset, count, all);
+
+      // 2) Danach die Day-Zellen, damit diese oben liegen
       days.forEach(d => {
         const cell = document.createElement('div');
         cell.className = 'day' + (d? '' : ' is-out');
@@ -156,11 +159,9 @@ function renderCalendar(monthsAhead, cache){
           if(d.toDateString() === new Date().toDateString()) cell.classList.add('today');
           cell.appendChild(dnum);
         }
-        gridDays.appendChild(cell);
-        const ph = document.createElement('div'); barsLayer.appendChild(ph);
+        grid.appendChild(cell);
       });
 
-      renderBars(barsLayer, mdate.getFullYear(), mdate.getMonth(), startOffset, count, all);
       cal.appendChild(frag);
     }
   });
@@ -244,9 +245,10 @@ function showMsg(errOrText){
 }
 
 async function renderAll(){
+  // DEFAULT 6 Monate ist Server-Default; falls User hochdreht, nehmen wir den Wert
   const monthsAhead = parseInt($('#months').value,10);
-  const today = new Date();
-  const start = new Date(today.getFullYear(), today.getMonth(), 1);
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
   const end   = addMonths(start, monthsAhead);
   const from = fmt(start), to = fmt(new Date(end.getFullYear(), end.getMonth(), 0));
   const all = await API.list(from, to);
@@ -254,7 +256,7 @@ async function renderAll(){
   renderTable(all);
 }
 
-// auto-reload when day/month changes (checks every 5 minutes)
+// Auto-Reload bei Tages-/Monatswechsel
 setInterval(()=>{
   const now = new Date();
   if(now.getDate() !== lastCheck.day || now.getMonth() !== lastCheck.month){
@@ -283,5 +285,4 @@ $('#btnAdd').addEventListener('click', async ()=>{
 
 $('#btnReload').addEventListener('click', ()=> renderAll());
 
-// Default months are server-provided; just render
 renderAll();

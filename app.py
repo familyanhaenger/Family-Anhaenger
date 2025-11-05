@@ -12,7 +12,7 @@ from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, Session
 
 APP_PORT = 8080
 ACCESS_CODE = os.environ.get("ACCESS_CODE", "")
-MONTHS_AHEAD = int(os.environ.get("MONTHS_AHEAD", "6"))  # default 6
+MONTHS_AHEAD = int(os.environ.get("MONTHS_AHEAD", "6"))
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def normalize_db_url(u: str|None) -> str:
@@ -42,7 +42,7 @@ class Booking(Base):
     name: Mapped[str] = mapped_column(String(120))
     start_date: Mapped[date] = mapped_column(Date, index=True)
     end_date: Mapped[date] = mapped_column(Date, index=True)
-    note: Mapped[str | None] = mapped_column(Text, nullable=True)  # legacy
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 Base.metadata.create_all(engine)
