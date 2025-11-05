@@ -51,7 +51,7 @@ function clipToMonth(d, year, month){
   return d;
 }
 
-function renderBars(grid, year, month, startOffset, daysCount, entries){
+function renderBars(barsLayer, year, month, startOffset, daysCount, entries){
   const monthStart = new Date(year, month, 1);
   const monthEnd   = new Date(year, month+1, 0);
   const totalCells = startOffset + daysCount;
@@ -84,6 +84,13 @@ function renderBars(grid, year, month, startOffset, daysCount, entries){
         const colEnd   = (segEnd % 7) + 2;
         seg.style.gridColumn = `${colStart} / ${colEnd}`;
         seg.style.gridRow = (w+1).toString();
+
+        const isSingleDay = segStart === segEnd;
+        const narrowCols = (segEnd - segStart + 1) <= 2;
+        if(isSingleDay || narrowCols){
+          seg.classList.add('compact');
+        }
+
         if(w === firstSegRow){
           const label = document.createElement('span');
           label.className = 'label';
@@ -93,10 +100,11 @@ function renderBars(grid, year, month, startOffset, daysCount, entries){
           const startInThisMonth = b.s.getMonth() === month && b.s.getFullYear() === year;
           if(startInThisMonth){
             const del = document.createElement('button');
-            del.textContent = 'Löschen';
-            del.className = 'del tag';
-            del.style.marginLeft = 'auto';
-            del.addEventListener('click', async ()=>{
+            del.textContent = isSingleDay ? '✕' : 'Löschen';
+            del.title = 'Löschen';
+            del.className = 'del';
+            del.addEventListener('click', async (ev)=>{
+              ev.stopPropagation();
               const codeEl = document.getElementById('code');
               const code = codeEl ? codeEl.value.trim() : '';
               try{ await API.del(b.id, code); renderCalendar(parseInt($('#months').value,10)); }
@@ -105,7 +113,7 @@ function renderBars(grid, year, month, startOffset, daysCount, entries){
             seg.appendChild(del);
           }
         }
-        grid.appendChild(seg);
+        barsLayer.appendChild(seg);
       }
     }
   });
@@ -122,21 +130,28 @@ function renderCalendar(monthsAhead){
     for(let i=0;i<monthsAhead;i++){
       const mdate = addMonths(start, i);
       const {first,last,days,startOffset,count} = monthMatrix(mdate.getFullYear(), mdate.getMonth());
-      const node = document.importNode($('#tpl-month').content, true);
-      node.querySelector('.month-title').textContent = first.toLocaleString('de-DE', {month:'long', year:'numeric'});
-      const grid = node.querySelector('.grid-days');
+      const frag = document.importNode($('#tpl-month').content, true);
+      frag.querySelector('.month-title').textContent = first.toLocaleString('de-DE', {month:'long', year:'numeric'});
+      const gridDays = frag.querySelector('.grid-days');
+      const barsLayer = frag.querySelector('.bars-layer');
 
+      // sync grids (columns are same in CSS; just fill days)
       days.forEach(d => {
         const cell = document.createElement('div');
         cell.className = 'day' + (d? '' : ' is-out');
         if(d){
           const dnum = document.createElement('div'); dnum.className='dnum'; dnum.textContent=d.getDate(); cell.appendChild(dnum);
         }
-        grid.appendChild(cell);
+        gridDays.appendChild(cell);
+        // also append an empty placeholder to bars-layer to align implicit grid rows
+        const ph = document.createElement('div');
+        barsLayer.appendChild(ph);
       });
 
-      renderBars(grid, mdate.getFullYear(), mdate.getMonth(), startOffset, count, all);
-      cal.appendChild(node);
+      // now render bars into the bars layer
+      renderBars(barsLayer, mdate.getFullYear(), mdate.getMonth(), startOffset, count, all);
+
+      cal.appendChild(frag);
     }
   });
 }
