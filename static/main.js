@@ -8,8 +8,8 @@ const API = {
     const r = await fetch(u);
     return r.json();
   },
-  async add({name, start, end, note, code}){
-    const body = {name,start,end,note};
+  async add({name, start, end, code}){
+    const body = {name,start,end};
     if(code) body.code = code;
     const r = await fetch('/api/bookings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     if(!r.ok){ throw {status:r.status, data: await r.json().catch(()=>({}))}; }
@@ -69,7 +69,16 @@ function renderBars(barsLayer, year, month, startOffset, daysCount, entries){
     const startIndex = startOffset + (sDay - 1);
     const endIndex   = startOffset + (eDay - 1);
     const color = hashColor(b.name);
+
     const firstSegRow = Math.floor(startIndex/7);
+    const startWeekday = (startIndex % 7); // 0=Mon,...,6=Sun
+
+    // If start is Sunday and booking continues to Monday or beyond,
+    // move label (and delete) to Monday (next row)
+    let labelRow = firstSegRow;
+    if(startWeekday === 6 && endIndex > startIndex){
+      labelRow = firstSegRow + 1;
+    }
 
     for(let w=0; w<weeks; w++){
       const rowStart = w*7;
@@ -88,30 +97,28 @@ function renderBars(barsLayer, year, month, startOffset, daysCount, entries){
         const isSingleDay = segStart === segEnd;
         const narrowCols = (segEnd - segStart + 1) <= 2;
         if(isSingleDay || narrowCols){
-          seg.classList.add('compact');
+          seg.classList.add('compact'); // same height, smaller text
         }
 
-        if(w === firstSegRow){
+        if(w === labelRow){
           const label = document.createElement('span');
           label.className = 'label';
-          label.textContent = b.name + (b.note ? ' · ' + b.note : '');
+          label.textContent = b.name; // no note
           seg.appendChild(label);
 
-          const startInThisMonth = b.s.getMonth() === month && b.s.getFullYear() === year;
-          if(startInThisMonth){
-            const del = document.createElement('button');
-            del.textContent = isSingleDay ? '✕' : 'Löschen';
-            del.title = 'Löschen';
-            del.className = 'del';
-            del.addEventListener('click', async (ev)=>{
-              ev.stopPropagation();
-              const codeEl = document.getElementById('code');
-              const code = codeEl ? codeEl.value.trim() : '';
-              try{ await API.del(b.id, code); renderCalendar(parseInt($('#months').value,10)); }
-              catch(err){ showMsg(err); }
-            });
-            seg.appendChild(del);
-          }
+          // delete button: show next to label (even if label moved to Monday)
+          const del = document.createElement('button');
+          del.textContent = isSingleDay ? '✕' : 'Löschen';
+          del.title = 'Löschen';
+          del.className = 'del';
+          del.addEventListener('click', async (ev)=>{
+            ev.stopPropagation();
+            const codeEl = document.getElementById('code');
+            const code = codeEl ? codeEl.value.trim() : '';
+            try{ await API.del(b.id, code); renderCalendar(parseInt($('#months').value,10)); }
+            catch(err){ showMsg(err); }
+          });
+          seg.appendChild(del);
         }
         barsLayer.appendChild(seg);
       }
@@ -135,7 +142,6 @@ function renderCalendar(monthsAhead){
       const gridDays = frag.querySelector('.grid-days');
       const barsLayer = frag.querySelector('.bars-layer');
 
-      // sync grids (columns are same in CSS; just fill days)
       days.forEach(d => {
         const cell = document.createElement('div');
         cell.className = 'day' + (d? '' : ' is-out');
@@ -143,14 +149,12 @@ function renderCalendar(monthsAhead){
           const dnum = document.createElement('div'); dnum.className='dnum'; dnum.textContent=d.getDate(); cell.appendChild(dnum);
         }
         gridDays.appendChild(cell);
-        // also append an empty placeholder to bars-layer to align implicit grid rows
+        // keep bars grid in sync
         const ph = document.createElement('div');
         barsLayer.appendChild(ph);
       });
 
-      // now render bars into the bars layer
       renderBars(barsLayer, mdate.getFullYear(), mdate.getMonth(), startOffset, count, all);
-
       cal.appendChild(frag);
     }
   });
@@ -167,11 +171,10 @@ function showMsg(errOrText){
 $('#btnAdd').addEventListener('click', async ()=>{
   const name = $('#name').value.trim();
   const start = $('#start').value; const end = $('#end').value;
-  const note = $('#note').value.trim();
   const codeEl = document.getElementById('code');
   const code = codeEl ? codeEl.value.trim() : '';
   if(!name || !start || !end) return showMsg('Bitte Name/Start/Ende ausfüllen.');
-  try{ await API.add({name,start,end,note,code}); $('#msg').textContent='Gespeichert.'; renderCalendar(parseInt($('#months').value,10)); }
+  try{ await API.add({name,start,end,code}); $('#msg').textContent='Gespeichert.'; renderCalendar(parseInt($('#months').value,10)); }
   catch(err){ showMsg(err); }
 });
 
