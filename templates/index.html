@@ -17,10 +17,10 @@
 
   <main>
     <section class="new-booking">
-      <h2>Neuen Zeitraum eintragen</h2>
+      <h2><span id="formTitle">Neuen Zeitraum eintragen</span></h2>
       <div class="grid">
         <label>Name
-          <input id="name" placeholder="z.B. Alex" />
+          <select id="name"></select>
         </label>
         <label>Start
           <input id="start" type="date" />
@@ -31,7 +31,10 @@
         <label id="codeWrap">Passwort
           <input id="code" type="password" placeholder="Passwort (falls gesetzt)" />
         </label>
-        <button id="btnAdd">Eintragen</button>
+        <div class="actions">
+          <button id="btnAdd">Eintragen</button>
+          <button id="btnCancel" class="ghost" hidden>Abbrechen</button>
+        </div>
       </div>
       <p id="msg" class="msg"></p>
     </section>
@@ -39,6 +42,11 @@
     <section>
       <div class="legend small"><span class="pill"></span> Balken = Belegung über mehrere Tage</div>
       <div id="calendar" class="calendar"></div>
+    </section>
+
+    <section class="table-wrap">
+      <h2>Alle Buchungen</h2>
+      <div id="tableMount"></div>
     </section>
   </main>
 

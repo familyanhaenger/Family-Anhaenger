@@ -1,6 +1,6 @@
 :root{
   --bg:#0b0c10; --card:#121318; --ink:#e8e8e8; --muted:#a8a8a8; --accent:#7d4dff; --danger:#ff5c7a;
-  --grid:#1a1c24; --pill:#1f2230;
+  --grid:#1a1c24; --pill:#1f2230; --ok:#18b26b;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial}
@@ -11,11 +11,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,Sego
 main{padding:16px}
 
 .new-booking{background:var(--card);border:1px solid var(--grid);border-radius:14px;padding:16px;margin-bottom:16px}
-.new-booking .grid{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr)) auto;gap:10px}
+.new-booking .grid{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr)) auto;gap:10px;align-items:end}
 label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
-input{padding:10px;border-radius:10px;border:1px solid var(--grid);background:#0f1117;color:var(--ink)}
+input, select{padding:10px;border-radius:10px;border:1px solid var(--grid);background:#0f1117;color:var(--ink)}
 button{padding:10px 14px;border-radius:12px;border:1px solid var(--grid);background:var(--pill);color:var(--ink);cursor:pointer}
 button:hover{border-color:var(--accent)}
+button.ghost{background:transparent}
 .hint{color:var(--muted);font-size:12px}
 .msg{min-height:1.2em}
 
@@ -33,38 +34,32 @@ button:hover{border-color:var(--accent)}
   gap:2px;
   padding:6px;
 }
-.bars-layer{
-  position:absolute;
-  inset:0;
-  z-index:1; /* hinter den day cards */
-  pointer-events:none;
-}
+.bars-layer{ position:absolute; inset:0; z-index:1; pointer-events:none; }
 .grid-days{ z-index:2; }
 
 .day{border-radius:8px;padding:6px;min-height:78px;border:1px solid var(--grid);position:relative;background:#0f1117}
 .day.is-out{opacity:.35}
 
-/* Datum oben */
-.day .dnum{
-  position:absolute; top:6px; right:8px;
-  font-size:12px; color:var(--ink); font-weight:600;
-  z-index:5; pointer-events:none; text-shadow:0 1px 2px #000;
-}
+.day .dnum{ position:absolute; top:6px; right:8px; font-size:12px; color:var(--ink); font-weight:600; z-index:5; pointer-events:none; text-shadow:0 1px 2px #000; }
 
-/* Balken auf eigener Ebene (hinter Tagen) */
 .bar{
   height:24px; border-radius:999px; display:flex; align-items:center; gap:6px;
   padding:2px 8px; font-weight:600; color:#000;
   overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
-  margin-top:40px;
-  pointer-events:auto;
+  margin-top:40px; pointer-events:auto;
 }
-/* Kompakt = gleiche Höhe, nur kleinere Schrift & etwas engeres Padding */
 .bar.compact{ font-size:12px; padding:1px 8px; }
 
 .bar .label{opacity:.95}
 .bar .del{ margin-left:auto; opacity:.85; background:rgba(0,0,0,.15); border:0; border-radius:8px; padding:2px 6px; color:#fff; }
 .bar .del:hover{ opacity:1 }
+
+.table-wrap{margin-top:16px;background:var(--card);border:1px solid var(--grid);border-radius:14px;padding:12px}
+table{width:100%; border-collapse:collapse; font-size:14px}
+th, td{border-top:1px solid var(--grid); padding:8px 10px; text-align:left}
+thead th{border-top:0; color:var(--muted); font-weight:600}
+tbody tr:hover{background:#0f1117}
+.tag{padding:2px 6px;border-radius:999px;background:#1f2230}
 
 .small{font-size:12px;color:var(--muted)}
 
