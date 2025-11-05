@@ -40,6 +40,7 @@ const API = {
 }
 
 const fmt = d=> d.toISOString().slice(0,10);
+function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
 function addMonths(d, m){ const x = new Date(d); x.setMonth(x.getMonth()+m); return x; }
 
 function monthMatrix(year, month){
@@ -149,7 +150,11 @@ function renderCalendar(monthsAhead, cache){
         const cell = document.createElement('div');
         cell.className = 'day' + (d? '' : ' is-out');
         if(d){
-          const dnum = document.createElement('div'); dnum.className='dnum'; dnum.textContent=d.getDate(); cell.appendChild(dnum);
+          const dnum = document.createElement('div');
+          dnum.className='dnum';
+          dnum.textContent=d.getDate();
+          if(d.toDateString() === new Date().toDateString()) cell.classList.add('today');
+          cell.appendChild(dnum);
         }
         gridDays.appendChild(cell);
         const ph = document.createElement('div'); barsLayer.appendChild(ph);
@@ -164,7 +169,11 @@ function renderCalendar(monthsAhead, cache){
 function renderTable(all){
   const mount = $('#tableMount');
   if(!all) { mount.innerHTML=''; return; }
-  const rows = all.map(b=>{
+  const today = startOfDay(new Date());
+  const future = all.filter(b => startOfDay(new Date(b.end_date)) >= today);
+  $('#count').textContent = `(${future.length})`;
+
+  const rows = future.map(b=>{
     const dur = (new Date(b.end_date) - new Date(b.start_date))/(1000*60*60*24) + 1;
     return `<tr data-id="${b.id}">
       <td><span class="tag" style="background:${colorFor(b.name)}20; border:1px solid ${colorFor(b.name)}40; color:${colorFor(b.name)}">${b.name}</span></td>
@@ -182,13 +191,11 @@ function renderTable(all){
     <tbody>${rows}</tbody>
   </table>`;
 
-  $('#count').textContent = `(${all.length})`;
-
   mount.querySelectorAll('.btn-edit').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       const tr = e.target.closest('tr');
       const id = parseInt(tr.dataset.id,10);
-      const b = all.find(x=>x.id===id);
+      const b = future.find(x=>x.id===id);
       enterEditMode(b);
       const det = $('#bookingsDetails'); if(det && det.open){ det.open = false; }
     });
@@ -205,6 +212,8 @@ function renderTable(all){
 }
 
 let EDITING = null;
+let lastCheck = { day: (new Date()).getDate(), month: (new Date()).getMonth() };
+
 function enterEditMode(b){
   EDITING = b;
   $('#formTitle').textContent = 'Buchung bearbeiten';
@@ -245,6 +254,15 @@ async function renderAll(){
   renderTable(all);
 }
 
+// auto-reload when day/month changes (checks every 5 minutes)
+setInterval(()=>{
+  const now = new Date();
+  if(now.getDate() !== lastCheck.day || now.getMonth() !== lastCheck.month){
+    lastCheck = { day: now.getDate(), month: now.getMonth() };
+    renderAll();
+  }
+}, 5*60*1000);
+
 $('#btnAdd').addEventListener('click', async ()=>{
   const name = $('#name').value;
   const start = $('#start').value; const end = $('#end').value;
@@ -265,5 +283,5 @@ $('#btnAdd').addEventListener('click', async ()=>{
 
 $('#btnReload').addEventListener('click', ()=> renderAll());
 
-$('#months').value = MONTHS_AHEAD;
+// Default months are server-provided; just render
 renderAll();
