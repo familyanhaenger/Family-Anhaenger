@@ -12,7 +12,7 @@ from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, Session
 
 APP_PORT = 8080
 ACCESS_CODE = os.environ.get("ACCESS_CODE", "")
-MONTHS_AHEAD = int(os.environ.get("MONTHS_AHEAD", "12"))
+MONTHS_AHEAD = int(os.environ.get("MONTHS_AHEAD", "6"))  # default 6
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def normalize_db_url(u: str|None) -> str:
@@ -42,7 +42,7 @@ class Booking(Base):
     name: Mapped[str] = mapped_column(String(120))
     start_date: Mapped[date] = mapped_column(Date, index=True)
     end_date: Mapped[date] = mapped_column(Date, index=True)
-    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)  # legacy
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 Base.metadata.create_all(engine)
@@ -106,23 +106,9 @@ def create_booking():
         ).first()
         if conflict:
             return jsonify({"error":"conflict"}), 409
-        b = Booking(
-            name=name,
-            start_date=start,
-            end_date=end,
-            note=None
-        )
-        s.add(b)
-        s.commit()
-        s.refresh(b)
-        return jsonify({
-            "id": b.id,
-            "name": b.name,
-            "start_date": ymd(b.start_date),
-            "end_date": ymd(b.end_date),
-            "note": b.note or "",
-            "created_at": b.created_at.isoformat()
-        }), 201
+        b = Booking(name=name, start_date=start, end_date=end, note=None)
+        s.add(b); s.commit(); s.refresh(b)
+        return jsonify({"id": b.id, "name": b.name, "start_date": ymd(b.start_date), "end_date": ymd(b.end_date), "note": b.note or "", "created_at": b.created_at.isoformat()}), 201
 
 @app.put("/api/bookings/<int:booking_id>")
 def update_booking(booking_id: int):
@@ -134,40 +120,21 @@ def update_booking(booking_id: int):
     name = (payload.get("name") or "").strip()
     if not name or not payload.get("start") or not payload.get("end"):
         return jsonify({"error":"missing_fields"}), 400
-    start = parse_ymd(payload.get("start"))
-    end   = parse_ymd(payload.get("end"))
-    if end < start:
-        return jsonify({"error":"range"}), 400
+    start = parse_ymd(payload.get("start")); end = parse_ymd(payload.get("end"))
+    if end < start: return jsonify({"error":"range"}), 400
 
     with Session(engine) as s:
         conflict = s.execute(
             select(Booking.id).where(
-                and_(
-                    Booking.id != booking_id,
-                    Booking.start_date <= end,
-                    Booking.end_date >= start
-                )
+                and_(Booking.id != booking_id, Booking.start_date <= end, Booking.end_date >= start)
             ).limit(1)
         ).first()
-        if conflict:
-            return jsonify({"error":"conflict"}), 409
-
+        if conflict: return jsonify({"error":"conflict"}), 409
         b = s.get(Booking, booking_id)
-        if not b:
-            return jsonify({"error":"not_found"}), 404
-        b.name = name
-        b.start_date = start
-        b.end_date = end
-        s.commit()
-        s.refresh(b)
-        return jsonify({
-            "id": b.id,
-            "name": b.name,
-            "start_date": ymd(b.start_date),
-            "end_date": ymd(b.end_date),
-            "note": b.note or "",
-            "created_at": b.created_at.isoformat()
-        })
+        if not b: return jsonify({"error":"not_found"}), 404
+        b.name = name; b.start_date = start; b.end_date = end
+        s.commit(); s.refresh(b)
+        return jsonify({"id": b.id, "name": b.name, "start_date": ymd(b.start_date), "end_date": ymd(b.end_date), "note": b.note or "", "created_at": b.created_at.isoformat()})
 
 @app.delete("/api/bookings/<int:booking_id>")
 def delete_booking(booking_id: int):
@@ -177,9 +144,7 @@ def delete_booking(booking_id: int):
             return jsonify({"error":"invalid_code"}), 401
     with Session(engine) as s:
         b = s.get(Booking, booking_id)
-        if b:
-            s.delete(b)
-            s.commit()
+        if b: s.delete(b); s.commit()
     return ("", 204)
 
 @app.get("/health")

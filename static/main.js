@@ -182,12 +182,15 @@ function renderTable(all){
     <tbody>${rows}</tbody>
   </table>`;
 
+  $('#count').textContent = `(${all.length})`;
+
   mount.querySelectorAll('.btn-edit').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       const tr = e.target.closest('tr');
       const id = parseInt(tr.dataset.id,10);
       const b = all.find(x=>x.id===id);
       enterEditMode(b);
+      const det = $('#bookingsDetails'); if(det && det.open){ det.open = false; }
     });
   });
   mount.querySelectorAll('.btn-del').forEach(btn=>{

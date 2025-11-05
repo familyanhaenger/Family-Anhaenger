@@ -1,6 +1,6 @@
 :root{
   --bg:#0b0c10; --card:#121318; --ink:#e8e8e8; --muted:#a8a8a8; --accent:#7d4dff; --danger:#ff5c7a;
-  --grid:#1a1c24; --pill:#1f2230; --ok:#18b26b;
+  --grid:#1a1c24; --pill:#1f2230; --ok:#18b26b; --barTop:36px;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial}
@@ -32,7 +32,7 @@ button.ghost{background:transparent}
   display:grid;
   grid-template-columns:repeat(7,1fr);
   gap:2px;
-  padding:6px;
+  padding:var(--barTop) 6px 6px 6px; /* extra top space for bars */
 }
 .bars-layer{ position:absolute; inset:0; z-index:1; pointer-events:none; }
 .grid-days{ z-index:2; }
@@ -46,7 +46,7 @@ button.ghost{background:transparent}
   height:24px; border-radius:999px; display:flex; align-items:center; gap:6px;
   padding:2px 8px; font-weight:600; color:#000;
   overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
-  margin-top:40px; pointer-events:auto;
+  pointer-events:auto;
 }
 .bar.compact{ font-size:12px; padding:1px 8px; }
 
@@ -55,7 +55,10 @@ button.ghost{background:transparent}
 .bar .del:hover{ opacity:1 }
 
 .table-wrap{margin-top:16px;background:var(--card);border:1px solid var(--grid);border-radius:14px;padding:12px}
-table{width:100%; border-collapse:collapse; font-size:14px}
+details summary{cursor:pointer; user-select:none; list-style:none; display:flex; gap:8px; align-items:center}
+details summary::-webkit-details-marker{display:none}
+#count{color:var(--muted); font-weight:400}
+table{width:100%; border-collapse:collapse; font-size:14px; margin-top:8px}
 th, td{border-top:1px solid var(--grid); padding:8px 10px; text-align:left}
 thead th{border-top:0; color:var(--muted); font-weight:600}
 tbody tr:hover{background:#0f1117}
