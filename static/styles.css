@@ -27,7 +27,7 @@ button:hover{border-color:var(--accent)}
 .grid-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:6px;position:relative}
 .day{border-radius:8px;padding:6px;min-height:78px;border:1px solid var(--grid);position:relative;background:#0f1117}
 .day.is-out{opacity:.35}
-.day .dnum{position:absolute;top:6px;right:8px;font-size:12px;color:var(--muted)}
+.day .dnum{position:absolute;top:6px;right:8px;font-size:12px;color:var(--ink);   /* heller */font-weight:600;z-index:10;        /* Datum ganz oben */pointer-events:none; /* Klicks gehen durch */text-shadow:0 1px 2px #000; /* besser sichtbar */}
 .bar{height:24px;border-radius:999px;display:flex;align-items:center;gap:8px;padding:2px 10px;font-weight:600;color:#000;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-top:40px;z-index:5}
 .bar .label{opacity:.95}
 .pill{display:inline-block;width:16px;height:10px;border-radius:999px;background:var(--accent)}
