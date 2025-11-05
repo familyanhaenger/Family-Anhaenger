@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Family‑Anhänger – Belegungsplan</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Family‑Anhänger Kalender</h1>
+    <div class="controls">
+      <label>Monate: <input id="months" type="number" min="1" max="24" value="{{ months_ahead }}" /></label>
+      <button id="btnReload">Neu laden</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="new-booking">
+      <h2>Neuen Zeitraum eintragen</h2>
+      <div class="grid">
+        <label>Name
+          <input id="name" placeholder="z.B. Alex" />
+        </label>
+        <label>Start
+          <input id="start" type="date" />
+        </label>
+        <label>Ende
+          <input id="end" type="date" />
+        </label>
+        <label>Notiz
+          <input id="note" placeholder="optional" />
+        </label>
+        <label>Änderungs‑Code
+          <input id="code" type="password" placeholder="ACCESS_CODE" />
+        </label>
+        <button id="btnAdd">Eintragen</button>
+      </div>
+      <p class="hint">Lesen ohne Code. Eintragen/Löschen nur mit gemeinsamem Code.</p>
+      <p id="msg" class="msg"></p>
+    </section>
+
+    <section>
+      <div class="legend small"><span class="pill"></span> Balken = Belegung über mehrere Tage</div>
+      <div id="calendar" class="calendar"></div>
+    </section>
+  </main>
+
+  <template id="tpl-month">
+    <div class="month">
+      <div class="month-head">
+        <h3 class="month-title"></h3>
+        <div class="dow">
+          <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+        </div>
+      </div>
+      <div class="grid-days"></div>
+    </div>
+  </template>
+
+  <script>const MONTHS_AHEAD = {{ months_ahead|tojson }};</script>
+  <script src="/static/main.js"></script>
+</body>
+</html>
